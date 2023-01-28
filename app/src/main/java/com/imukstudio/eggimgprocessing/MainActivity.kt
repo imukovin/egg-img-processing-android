@@ -58,6 +58,10 @@ class MainActivity : AppCompatActivity() {
             findViewById<TextView>(R.id.eggVolumeText).text = getString(R.string.volume_size, eggParams.volume)
             findViewById<TextView>(R.id.eggSquareText).text = getString(R.string.square_size, eggParams.square)
             findViewById<TextView>(R.id.eggMassText).text = getString(R.string.mass_size, eggParams.mass)
+            findViewById<TextView>(R.id.eggAreaRatioToVolumeText).text = eggParams.rationAreaToVolume.toString()
+            findViewById<TextView>(R.id.eggShellMassText).text = getString(R.string.mass_size, eggParams.shellMass)
+            findViewById<TextView>(R.id.eggYolkMassText).text = getString(R.string.mass_size, eggParams.yolkMass)
+            findViewById<TextView>(R.id.eggProteinMassText).text = getString(R.string.mass_size, eggParams.proteinMass)
         }
 
         if (OpenCVLoader.initDebug()) {

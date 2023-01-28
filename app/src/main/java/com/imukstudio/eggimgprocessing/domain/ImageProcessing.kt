@@ -3,6 +3,7 @@ package com.imukstudio.eggimgprocessing.domain
 import android.graphics.Bitmap
 import android.util.Log
 import androidx.core.graphics.scale
+import com.imukstudio.eggimgprocessing.App
 import com.imukstudio.eggimgprocessing.domain.model.EggImageObject
 import com.imukstudio.eggimgprocessing.domain.model.EggParameters
 import com.imukstudio.eggimgprocessing.domain.model.ReferenceObject
@@ -182,16 +183,21 @@ class ImageProcessing {
         val b = eggImageObject.b * referenceObject!!.coefficient
         val c = eggImageObject.c * referenceObject!!.coefficient
 
-        Log.d("EGG_PARAMS", "Physical length of egg radius: a = $a b = $b c = $c")
-        Log.d("EGG_PARAMS", "Egg real size: w = $eggRealWidth h = $eggRealHeight")
+        Log.d(App.APP_LOG_TAG, "Physical length of egg radius: a = $a b = $b c = $c")
+        Log.d(App.APP_LOG_TAG, "Egg real size: w = $eggRealWidth h = $eggRealHeight")
 
         val eggVolume = (2 * Math.PI / 3) * a.pow(2) * (b + c)
 
-        val first = b.pow(2) / sqrt(b.pow(2) - a.pow(2)) * acos(a / b)
-        val second = c.pow(2) / sqrt(c.pow(2) - a.pow(2)) * acos(a / c)
+        val first = b.pow(2) / sqrt(abs(b.pow(2) - a.pow(2))) * acos(a / b)
+        val second = c.pow(2) / sqrt(abs(c.pow(2) - a.pow(2))) * acos(a / c)
         val eggSquare = (2 * Math.PI * a.pow(2)) + Math.PI * a * (first + second)
 
         val eggMass = eggVolume / 1000 * EGG_DENSITY
+
+        val eggAreaToVolume = eggSquare / eggVolume
+        val eggShellMass = eggMass * EGG_SHELL_MASS_PERCENT_COEFFICIENT
+        val eggYolkMass = eggMass * EGG_YOLK_MASS_PERCENT_COEFFICIENT
+        val eggProteinMass = eggMass * EGG_PROTEIN_MASS_PERCENT_COEFFICIENT
 
         eggParamsListener?.invoke(
             EggParameters(
@@ -199,7 +205,11 @@ class ImageProcessing {
                 height = eggRealHeight,
                 volume = eggVolume,
                 square = eggSquare,
-                mass = eggMass
+                mass = eggMass,
+                rationAreaToVolume = eggAreaToVolume,
+                shellMass = eggShellMass,
+                yolkMass = eggYolkMass,
+                proteinMass = eggProteinMass
             )
         ) ?: throw IllegalStateException("ImageProcessing() object: eggParamListener didn't set!")
     }
@@ -217,5 +227,8 @@ class ImageProcessing {
     companion object {
         private const val REFERENCE_OBJECT_REAL_DIAMETER_MM = 20.5
         private const val EGG_DENSITY = 1.09
+        private const val EGG_SHELL_MASS_PERCENT_COEFFICIENT = 0.115
+        private const val EGG_YOLK_MASS_PERCENT_COEFFICIENT = 0.31
+        private const val EGG_PROTEIN_MASS_PERCENT_COEFFICIENT = 0.56
     }
 }
