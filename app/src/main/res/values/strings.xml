@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Egg Image Processing</string>
+
+    <string name="weight_height_size">%1$.2f мм</string>
+    <string name="volume_size">%1$.2f мм3</string>
+    <string name="square_size">%1$.2f мм2</string>
+    <string name="mass_size">%1$.2f г</string>
+</resources>
