@@ -19,6 +19,7 @@ import kotlin.math.abs
 import kotlin.math.acos
 import kotlin.math.pow
 import kotlin.math.sqrt
+import org.opencv.core.MatOfPoint2f
 
 class ImageProcessing {
     private var eggImageObject: EggImageObject? = null
@@ -34,8 +35,8 @@ class ImageProcessing {
 
     private fun processImageInner(value: Bitmap): Bitmap {
         val value1 = value.scale(
-            value.width / RESIZE_IMG_COEFFICIENT,
-            value.height / RESIZE_IMG_COEFFICIENT
+            RESIZE_IMG_WIDTH,
+            value.height * RESIZE_IMG_WIDTH / value.width
         )
         val mat = Mat()
         val rgbImgMat = Mat()
@@ -51,7 +52,32 @@ class ImageProcessing {
 
         val cnts = mutableListOf<MatOfPoint>()
         Imgproc.findContours(mat, cnts, Mat(), Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_SIMPLE)
-        Imgproc.drawContours(rgbImgMat, cnts, -1, Scalar(255.0, 0.0, 0.0), 2)
+
+        cnts.sortWith(compareBy<MatOfPoint> { it.width() }.thenBy { it.height() })
+        val listOfDetectedCounters = mutableListOf<MatOfPoint>()
+        cnts.forEach {
+
+            if (Imgproc.contourArea(it) > 100.0) {
+                val box = Imgproc.minAreaRect(MatOfPoint2f(*it.toArray()))
+                val vertices: Array<Point> = Array(4) { Point() }
+                val midPoints: Array<Point> = Array(4) { Point() }
+                box.points(vertices)
+                for (j in 0..3) {
+                    Imgproc.line(rgbImgMat, vertices[j], vertices[(j + 1) % 4], Scalar(0.0, 255.0, 0.0))
+                    Imgproc.circle(rgbImgMat, vertices[j], 2, Scalar(0.0, 0.0, 255.0), 2)
+                    midPoints[j] = Point(
+                        (vertices[j].x + vertices[(j + 1) % 4].x) * 0.5,
+                        (vertices[j].y + vertices[(j + 1) % 4 ].y) * 0.5
+                    )
+                    Imgproc.circle(rgbImgMat, midPoints[j], 2, Scalar(0.0, 0.0, 255.0), 2)
+                }
+                Imgproc.line(rgbImgMat, midPoints[0], midPoints[2], Scalar(255.0, 0.0, 255.0))
+                Imgproc.line(rgbImgMat, midPoints[1], midPoints[3], Scalar(255.0, 0.0, 255.0))
+                listOfDetectedCounters.add(it)
+            }
+        }
+
+        Imgproc.drawContours(rgbImgMat, listOfDetectedCounters, -1, Scalar(255.0, 0.0, 0.0), 1)
 
 //        cnts.forEach {
 //            val boundingRect = Imgproc.boundingRect(it)
@@ -234,6 +260,6 @@ class ImageProcessing {
         private const val EGG_SHELL_MASS_PERCENT_COEFFICIENT = 0.115
         private const val EGG_YOLK_MASS_PERCENT_COEFFICIENT = 0.31
         private const val EGG_PROTEIN_MASS_PERCENT_COEFFICIENT = 0.56
-        private const val RESIZE_IMG_COEFFICIENT = 10
+        private const val RESIZE_IMG_WIDTH = 500
     }
 }
