@@ -1,9 +1,13 @@
 package com.imukstudio.eggimgprocessing
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.media.ExifInterface
+import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
@@ -116,6 +120,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun startImageProcessing(value: Bitmap) {
+        Log.d(App.APP_LOG_TAG, "Input image size: w = ${value.width}px h = ${value.height} px")
+        lifecycleScope.launch {
+            val resultBitmap = imageProcessing.processImage(value)
+            Log.d(App.APP_LOG_TAG, "Result mat size: w = ${resultBitmap.width} h = ${resultBitmap.height}")
+            findViewById<ImageView>(R.id.imageView).setImageBitmap(resultBitmap)
+        }
+    }
+
     private fun getPermission() {
         if (checkSelfPermission(android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(android.Manifest.permission.CAMERA), PERMISSION_REQUEST_CODE)
@@ -128,20 +141,12 @@ class MainActivity : AppCompatActivity() {
                 SELECTED_REQUEST_CODE -> {
                     result.data?.let {
                         val bitmap = MediaStore.Images.Media.getBitmap(this.contentResolver, it.data)
-                        Log.d(App.APP_LOG_TAG, "Input image size: w = ${bitmap.width}px h = ${bitmap.height} px")
-                        lifecycleScope.launch {
-                            val resultBitmap = imageProcessing.processImage(bitmap)
-                            findViewById<ImageView>(R.id.imageView).setImageBitmap(resultBitmap)
-                        }
+                        startImageProcessing(bitmap)
                     }
                 }
                 CAMERA_REQUEST_CODE -> {
                     val bitmap = BitmapFactory.decodeFile(currentPhotoPath)
-                    Log.d(App.APP_LOG_TAG, "Input image size: w = ${bitmap.width}px h = ${bitmap.height} px")
-                    lifecycleScope.launch {
-                        val resultBitmap = imageProcessing.processImage(bitmap)
-                        findViewById<ImageView>(R.id.imageView).setImageBitmap(resultBitmap)
-                    }
+                    startImageProcessing(bitmap)
                 }
             }
         }
