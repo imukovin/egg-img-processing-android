@@ -3,8 +3,9 @@ package com.imukstudio.eggimgprocessing
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Bundle
+import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
 import android.widget.Button
@@ -14,8 +15,11 @@ import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import com.imukstudio.eggimgprocessing.domain.ImageProcessing
+import java.io.File
+import java.io.IOException
 import kotlinx.coroutines.launch
 import org.opencv.android.OpenCVLoader
 
@@ -23,6 +27,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var registerSelect: ActivityResultLauncher<Intent>
     private lateinit var registerCamera: ActivityResultLauncher<Intent>
     private val imageProcessing = ImageProcessing()
+    private var currentPhotoPath = ""
 
     override fun onStart() {
         super.onStart()
@@ -47,9 +52,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<Button>(R.id.openCameraBtn).setOnClickListener {
-            val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-            intent.putExtra("REQUEST_CODE", CAMERA_REQUEST_CODE)
-            registerCamera.launch(intent)
+            getImageInRealSizeFromCamera()
         }
 
         imageProcessing.setEggParamListener { eggParams ->
@@ -90,6 +93,29 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun getImageInRealSizeFromCamera() {
+        val storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+        try {
+            val imageFile = File.createTempFile(
+                FILE_NAME_FROM_CAMERA,
+                FILE_EXTENSION_FROM_CAMERA,
+                storageDir
+            )
+            currentPhotoPath = imageFile.absolutePath
+
+            val imageUri = FileProvider.getUriForFile(
+                this,
+                "com.imukstudio.eggimgprocessing.fileprovider",
+                imageFile
+            )
+            val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+            intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri)
+            registerCamera.launch(intent)
+        } catch (e: IOException) {
+            // TODO:
+        }
+    }
+
     private fun getPermission() {
         if (checkSelfPermission(android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(android.Manifest.permission.CAMERA), PERMISSION_REQUEST_CODE)
@@ -97,17 +123,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onActivityResult(resultCode: Int, result: ActivityResult) {
-        if (result.resultCode == Activity.RESULT_OK  && result.data != null) {
+        if (result.resultCode == Activity.RESULT_OK) {
             when (resultCode) {
                 SELECTED_REQUEST_CODE -> {
-                    val bitmap = MediaStore.Images.Media.getBitmap(this.contentResolver, result.data?.data)
-                    lifecycleScope.launch {
-                        val resultBitmap = imageProcessing.processImage(bitmap, resizeImgCoefficient = RESIZE_IMG_COEFFICIENT)
-                        findViewById<ImageView>(R.id.imageView).setImageBitmap(resultBitmap)
+                    result.data?.let {
+                        val bitmap = MediaStore.Images.Media.getBitmap(this.contentResolver, it.data)
+                        Log.d(App.APP_LOG_TAG, "Input image size: w = ${bitmap.width}px h = ${bitmap.height} px")
+                        lifecycleScope.launch {
+                            val resultBitmap = imageProcessing.processImage(bitmap)
+                            findViewById<ImageView>(R.id.imageView).setImageBitmap(resultBitmap)
+                        }
                     }
                 }
                 CAMERA_REQUEST_CODE -> {
-                    val bitmap = result.data?.extras?.get("data") as Bitmap
+                    val bitmap = BitmapFactory.decodeFile(currentPhotoPath)
+                    Log.d(App.APP_LOG_TAG, "Input image size: w = ${bitmap.width}px h = ${bitmap.height} px")
                     lifecycleScope.launch {
                         val resultBitmap = imageProcessing.processImage(bitmap)
                         findViewById<ImageView>(R.id.imageView).setImageBitmap(resultBitmap)
@@ -121,7 +151,8 @@ class MainActivity : AppCompatActivity() {
         private const val SELECTED_REQUEST_CODE = 201
         private const val CAMERA_REQUEST_CODE = 202
         private const val PERMISSION_REQUEST_CODE = 202
-        // If img was taken from a real time phone camera then need coefficient to resize it
-        private const val RESIZE_IMG_COEFFICIENT = 10
+
+        private const val FILE_NAME_FROM_CAMERA = "photoFromCamera"
+        private const val FILE_EXTENSION_FROM_CAMERA = ".jpg"
     }
 }
