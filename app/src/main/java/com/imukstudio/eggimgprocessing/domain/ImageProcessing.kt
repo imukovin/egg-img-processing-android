@@ -7,24 +7,25 @@ import com.imukstudio.eggimgprocessing.App
 import com.imukstudio.eggimgprocessing.domain.model.EggImageObject
 import com.imukstudio.eggimgprocessing.domain.model.EggParameters
 import com.imukstudio.eggimgprocessing.domain.model.ReferenceObject
+import kotlin.math.abs
+import kotlin.math.acos
+import kotlin.math.pow
+import kotlin.math.sqrt
 import org.opencv.android.Utils
 import org.opencv.core.Mat
 import org.opencv.core.MatOfPoint
+import org.opencv.core.MatOfPoint2f
 import org.opencv.core.Point
 import org.opencv.core.Rect
 import org.opencv.core.Scalar
 import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc
-import kotlin.math.abs
-import kotlin.math.acos
-import kotlin.math.pow
-import kotlin.math.sqrt
-import org.opencv.core.MatOfPoint2f
 
 class ImageProcessing {
     private var eggImageObject: EggImageObject? = null
     private var referenceObject: ReferenceObject? = null
     private var eggParamsListener: ((params: EggParameters) -> Unit)? = null
+    private var pixelsPerMetric: Double? = null
 
     fun processImage(img: Bitmap): Bitmap =
         processImageInner(img)
@@ -73,10 +74,41 @@ class ImageProcessing {
                 }
                 Imgproc.line(rgbImgMat, midPoints[0], midPoints[2], Scalar(255.0, 0.0, 255.0))
                 Imgproc.line(rgbImgMat, midPoints[1], midPoints[3], Scalar(255.0, 0.0, 255.0))
+
+                val dA = distance(midPoints[0], midPoints[2])
+                val dB = distance(midPoints[1], midPoints[3])
+
+                if (pixelsPerMetric == null) {
+                    pixelsPerMetric = REFERENCE_OBJECT_REAL_DIAMETER_MM / dB
+                } else {
+                    pixelsPerMetric?.let { pixelsPerMetric ->
+                        val dimA = dA * pixelsPerMetric
+                        val dimB = dB * pixelsPerMetric
+
+                        Imgproc.putText(
+                            rgbImgMat,
+                            "%.1f".format(dimA),
+                            Point(midPoints[1].x + 10, midPoints[1].y),
+                            2,
+                            0.5,
+                            Scalar(255.0, 0.0, 255.0)
+                        )
+                        Imgproc.putText(
+                            rgbImgMat,
+                            "%.1f".format(dimB),
+                            Point(midPoints[0].x - 15, midPoints[0].y - 10),
+                            2,
+                            0.5,
+                            Scalar(255.0, 0.0, 255.0)
+                        )
+                    }
+
+                }
+
                 listOfDetectedCounters.add(it)
             }
         }
-
+        pixelsPerMetric = null
         Imgproc.drawContours(rgbImgMat, listOfDetectedCounters, -1, Scalar(255.0, 0.0, 0.0), 1)
 
 //        cnts.forEach {
@@ -127,6 +159,10 @@ class ImageProcessing {
         Utils.matToBitmap(rgbImgMat, value1)
         return value1
     }
+
+    // distance = sqrt((y2 - y1) * (y2 - y1) + (x2 - x1) * (x2 - x1))
+    private fun distance(first: Point, second: Point): Double =
+        sqrt((second.y - first.y) * (second.y - first.y) + (second.x - first.x) * (second.x - first.x))
 
     private fun getEggObject(rect: Rect, cnt: MatOfPoint): EggImageObject {
         // find height axis line points
