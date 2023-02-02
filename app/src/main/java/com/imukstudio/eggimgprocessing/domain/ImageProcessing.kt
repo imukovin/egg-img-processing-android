@@ -79,11 +79,11 @@ class ImageProcessing {
                 val dB = distance(midPoints[1], midPoints[3])
 
                 if (pixelsPerMetric == null) {
-                    pixelsPerMetric = REFERENCE_OBJECT_REAL_DIAMETER_MM / dB
+                    pixelsPerMetric = dB / REFERENCE_OBJECT_REAL_DIAMETER_MM
                 } else {
                     pixelsPerMetric?.let { pixelsPerMetric ->
-                        val dimA = dA * pixelsPerMetric
-                        val dimB = dB * pixelsPerMetric
+                        val dimA = dA / pixelsPerMetric
+                        val dimB = dB / pixelsPerMetric
 
                         Imgproc.putText(
                             rgbImgMat,
