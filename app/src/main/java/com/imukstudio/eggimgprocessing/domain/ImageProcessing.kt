@@ -102,60 +102,13 @@ class ImageProcessing {
                             Scalar(255.0, 0.0, 255.0)
                         )
                     }
-
                 }
-
                 listOfDetectedCounters.add(it)
             }
         }
         pixelsPerMetric = null
         Imgproc.drawContours(rgbImgMat, listOfDetectedCounters, -1, Scalar(255.0, 0.0, 0.0), 1)
 
-//        cnts.forEach {
-//            val boundingRect = Imgproc.boundingRect(it)
-//
-//            if (boundingRect.height * boundingRect.width > 500
-//                && boundingRect.height != value1.height) {
-//                if (isReferenceObject(boundingRect)) {
-//                    // We find reference object
-//                    Imgproc.rectangle(rgbImgMat, boundingRect, Scalar(0.0, 255.0, 0.0), 1)
-//                    Imgproc.putText(
-//                        rgbImgMat,
-//                        "Reference h=${boundingRect.height} w=${boundingRect.width}",
-//                        Point(boundingRect.x.toDouble(), boundingRect.y.toDouble() - 5),
-//                        1,
-//                        0.7,
-//                        Scalar(0.0, 255.0, 0.0)
-//                    )
-//                    val sizeInImg = (boundingRect.width + boundingRect.height) / 2
-//                    referenceObject = ReferenceObject(
-//                        boundingBox = boundingRect,
-//                        coefficient = REFERENCE_OBJECT_REAL_DIAMETER_MM / sizeInImg,
-//                        type = ReferenceObjectType.CIRCLE
-//                    )
-//                } else {
-//                    Imgproc.rectangle(rgbImgMat, boundingRect, Scalar(0.0, 255.0, 0.0), 1)
-//                    Imgproc.putText(
-//                        rgbImgMat,
-//                        "Egg h=${boundingRect.height} w=${boundingRect.width}",
-//                        Point(boundingRect.x.toDouble(), boundingRect.y.toDouble() - 5),
-//                        1,
-//                        0.7,
-//                        Scalar(0.0, 255.0, 0.0)
-//                    )
-//
-//                    eggImageObject = getEggObject(boundingRect, it)
-//                }
-//                drawBoundingRectCornerPoints(rgbImgMat, boundingRect, it)
-//            }
-//        }
-//        if (referenceObject == null) {
-//            throw IllegalStateException("Can't find reference object!")
-//        }
-//        if (eggImageObject == null) {
-//            throw IllegalStateException("Can't find egg object!")
-//        }
-//        calculateEggParams(eggImageObject!!)
         Utils.matToBitmap(rgbImgMat, value1)
         return value1
     }
