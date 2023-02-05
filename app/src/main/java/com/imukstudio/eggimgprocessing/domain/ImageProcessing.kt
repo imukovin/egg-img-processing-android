@@ -9,6 +9,8 @@ import com.imukstudio.eggimgprocessing.domain.model.EggParameters
 import com.imukstudio.eggimgprocessing.domain.model.ReferenceObject
 import kotlin.math.abs
 import kotlin.math.acos
+import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sqrt
 import org.opencv.android.Utils
@@ -101,10 +103,19 @@ class ImageProcessing {
                             0.5,
                             Scalar(255.0, 0.0, 255.0)
                         )
+
+                        eggImageObject = EggImageObject(
+                            boundingBox = Imgproc.boundingRect(it),
+                            equatorialRadius = min(dimA, dimB) - 3.5,
+                            polarRadius = max(dimA, dimB) - 3.5
+                        )
                     }
                 }
                 listOfDetectedCounters.add(it)
             }
+        }
+        eggImageObject?.let {
+            calculateEggParams(it)
         }
         pixelsPerMetric = null
         Imgproc.drawContours(rgbImgMat, listOfDetectedCounters, -1, Scalar(255.0, 0.0, 0.0), 1)
@@ -135,8 +146,8 @@ class ImageProcessing {
             rect,
             rect.width.toDouble() / 2,
             highAxisPointBLineWidth,
-            highAxisPointALineWidth,
-            intersectionPoint
+//            highAxisPointALineWidth,
+//            intersectionPoint
         )
     }
 
@@ -196,14 +207,14 @@ class ImageProcessing {
         abs(boundingRect.width - boundingRect.height) in 0..5
 
     private fun calculateEggParams(eggImageObject: EggImageObject) {
-        val eggRealWidth = eggImageObject.boundingBox.width * referenceObject!!.coefficient
-        val eggRealHeight = eggImageObject.boundingBox.height * referenceObject!!.coefficient
-        val a = eggImageObject.a * referenceObject!!.coefficient
-        val b = eggImageObject.b * referenceObject!!.coefficient
-        val c = eggImageObject.c * referenceObject!!.coefficient
+//        val eggRealWidth = eggImageObject.boundingBox.width * referenceObject!!.coefficient
+//        val eggRealHeight = eggImageObject.boundingBox.height * referenceObject!!.coefficient
+        val a = eggImageObject.equatorialRadius / 2
+        val b = eggImageObject.polarRadius / 2
+        val c = eggImageObject.polarRadius / 2
 
-        Log.d(App.APP_LOG_TAG, "Physical length of egg radius: a = $a b = $b c = $c")
-        Log.d(App.APP_LOG_TAG, "Egg real size: w = $eggRealWidth h = $eggRealHeight")
+//        Log.d(App.APP_LOG_TAG, "Physical length of egg radius: a = $a b = $b c = $c")
+//        Log.d(App.APP_LOG_TAG, "Egg real size: w = $eggRealWidth h = $eggRealHeight")
 
         val eggVolume = (2 * Math.PI / 3) * a.pow(2) * (b + c)
 
@@ -220,8 +231,8 @@ class ImageProcessing {
 
         eggParamsListener?.invoke(
             EggParameters(
-                width = eggRealWidth,
-                height = eggRealHeight,
+                width = eggImageObject.equatorialRadius,
+                height = eggImageObject.polarRadius,
                 volume = eggVolume,
                 square = eggSquare,
                 mass = eggMass,
@@ -244,7 +255,7 @@ class ImageProcessing {
 //        }
 
     companion object {
-        private const val REFERENCE_OBJECT_REAL_DIAMETER_MM = 20.5
+        private const val REFERENCE_OBJECT_REAL_DIAMETER_MM = 20.0
         private const val EGG_DENSITY = 1.09
         private const val EGG_SHELL_MASS_PERCENT_COEFFICIENT = 0.115
         private const val EGG_YOLK_MASS_PERCENT_COEFFICIENT = 0.31
